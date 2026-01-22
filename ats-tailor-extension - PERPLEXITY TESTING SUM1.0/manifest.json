@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ATS Tailor v1.9.0 - Auto-Trigger ATS Detection",
-  "version": "1.9.0",
-  "description": "v1.9.0: Auto-trigger on ATS platform detection (Workday, Greenhouse, iCIMS, SmartRecruiters, etc). Enhanced CV parser + Rich-text. Excludes: Lever, Ashby, LinkedIn, Indeed.",
+  "name": "ATS Tailor v2.0.0 - Professional PDF Engine",
+  "version": "2.0.0",
+  "description": "v2.0.0: Complete CV/Cover Letter revamp with Professional PDF Engine, Smart CV Parser, and improved formatting. Auto-trigger on ATS platforms.",
   "permissions": [
     "storage",
     "activeTab",
@@ -220,6 +220,9 @@
         "pdf-debug-panel.js",
         "pdf-diff-panel.js",
         "workday-handlers.js",
+        "professional-pdf-engine.js",
+        "smart-cv-parser.js",
+        "cover-letter-generator.js",
         "content.js"
       ],
       "css": ["content.css"],
