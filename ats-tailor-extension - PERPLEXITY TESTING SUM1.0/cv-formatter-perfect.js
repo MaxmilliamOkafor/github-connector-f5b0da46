@@ -360,13 +360,9 @@
           company = this.stripDatesFromField(company);
           title = this.stripDatesFromField(title);
           
-          // CRITICAL: Detect if company/title are swapped
-          // If "company" looks like a job title and "title" looks like a company, swap them
-          if (isJobTitle(company) && (isCompanyName(title) || !isJobTitle(title))) {
-            const temp = company;
-            company = title;
-            title = temp;
-          }
+          // NOTE: Removed auto-swap logic - company/title should come from profile exactly as-is
+          // The AI is instructed to preserve these fields exactly, so swapping would be incorrect
+          // If parsing issues occur, the problem is in the AI output, not here
           
           // Build titleLine: Title – YYYY – YYYY (using en dash with spaces)
           const yearDates = this.toYearOnly(dates);

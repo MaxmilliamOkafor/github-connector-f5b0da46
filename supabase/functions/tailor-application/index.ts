@@ -1825,8 +1825,12 @@ HOW TO ADD MISSING KEYWORDS NATURALLY:
 5. If keyword is a technology: mention it as "experience with" or "proficient in"
 6. If keyword is a soft skill: demonstrate it through an achievement example
 
-ABSOLUTE RULES:
-1. PRESERVE ALL COMPANY NAMES AND EXACT DATES - Only tailor the bullet points
+ABSOLUTE RULES (CRITICAL - VIOLATION = REJECTION):
+1. ███ IMMUTABLE FIELDS - DO NOT MODIFY ███
+   - Company names MUST remain EXACTLY as provided: ${userProfile.professionalExperience.map((e: any) => `"${e.company || e.title}"`).join(", ")}
+   - Job titles MUST remain EXACTLY as provided: ${userProfile.professionalExperience.map((e: any) => `"${e.title || e.company}"`).join(", ")}
+   - Dates MUST remain EXACTLY as provided
+   - ONLY modify the bullet points/achievements - NOTHING else in work experience
 2. Location in CV header MUST be: "${smartLocation}"
 3. NO typos, grammatical errors, or formatting issues
 4. File naming: ${candidateNameForFile}_CV.pdf and ${candidateNameForFile}_Cover_Letter.pdf
@@ -1888,8 +1892,14 @@ GitHub: ${userProfile.github}
 Portfolio: ${userProfile.portfolio}
 Current Location: ${userProfile.city || ""}, ${userProfile.state || ""} ${userProfile.country || ""}
 
-WORK EXPERIENCE (PRESERVE COMPANY NAMES AND DATES EXACTLY - ONLY REWRITE BULLETS):
-${JSON.stringify(userProfile.professionalExperience, null, 2)}
+WORK EXPERIENCE (███ IMMUTABLE: company, title, dates - ONLY MODIFY bullets ███):
+${userProfile.professionalExperience.map((exp: any, idx: number) => `
+=== ROLE ${idx + 1} ===
+IMMUTABLE_COMPANY: "${exp.company}" ← DO NOT CHANGE THIS
+IMMUTABLE_TITLE: "${exp.title}" ← DO NOT CHANGE THIS  
+IMMUTABLE_DATES: "${exp.startDate || ''} - ${exp.endDate || 'Present'}" ← DO NOT CHANGE THIS
+BULLETS_TO_TAILOR: ${JSON.stringify(exp.bullets || exp.description || [])}
+`).join('\n')}
 
 EDUCATION:
 ${JSON.stringify(userProfile.education, null, 2)}
@@ -1931,7 +1941,7 @@ ${JSON.stringify(userProfile.achievements, null, 2)}
       EXAMPLE OF WRONG SUMMARY (DO NOT DO THIS):
       "${candidateName} ${userProfile.phone} | ${userProfile.email}..." ← THIS IS WRONG
       ███ END DUPLICATION BAN ███
-   - Work Experience: Keep company/dates, rewrite bullets with JD keywords + metrics
+   - Work Experience: ███ CRITICAL: Copy company name, job title, and dates EXACTLY from IMMUTABLE_ fields above. ONLY rewrite the bullet points. ███
    - Education
    - Skills: Prioritize JD keywords (list as: Python, AWS, React, etc. - NO years of experience)
    - Certifications
@@ -2270,6 +2280,39 @@ ${
       tools: jdKeywords.tools,
       titles: jdKeywords.titles,
     };
+
+    // ███ CRITICAL: VALIDATE & FIX WORK EXPERIENCE IMMUTABILITY ███
+    // The AI may have incorrectly modified company names, job titles, or dates
+    // We MUST restore these from the original profile data
+    if (result.resumeStructured?.experience && Array.isArray(userProfile.professionalExperience)) {
+      const originalExps = userProfile.professionalExperience;
+      const aiExps = result.resumeStructured.experience;
+      
+      for (let i = 0; i < aiExps.length && i < originalExps.length; i++) {
+        const original = originalExps[i];
+        const aiGenerated = aiExps[i];
+        
+        // Log any discrepancies for debugging
+        if (aiGenerated.company !== original.company) {
+          console.warn(`[IMMUTABILITY FIX] Company changed from "${original.company}" to "${aiGenerated.company}" - RESTORING`);
+        }
+        if (aiGenerated.title !== original.title) {
+          console.warn(`[IMMUTABILITY FIX] Title changed from "${original.title}" to "${aiGenerated.title}" - RESTORING`);
+        }
+        
+        // FORCE original values - only bullets should be tailored
+        aiExps[i] = {
+          ...aiGenerated,
+          company: original.company,  // ← IMMUTABLE: force original
+          title: original.title,      // ← IMMUTABLE: force original
+          dates: original.dates || aiGenerated.dates || `${original.startDate || ''} – ${original.endDate || 'Present'}`,  // ← IMMUTABLE: force original
+          bullets: aiGenerated.bullets || original.bullets || [],  // ← MUTABLE: use AI's tailored bullets
+        };
+      }
+      
+      result.resumeStructured.experience = aiExps;
+      console.log(`[IMMUTABILITY FIX] Validated ${aiExps.length} work experience entries - company/title/dates restored from profile`);
+    }
 
     // Validate resume and cover letter
     if (!result.tailoredResume || result.tailoredResume.length < 100) {
