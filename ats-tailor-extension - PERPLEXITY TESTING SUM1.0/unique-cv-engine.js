@@ -228,13 +228,17 @@
     };
 
     // Process each role - CRITICAL: PRESERVE company name, job title, dates; ONLY MODIFY bullets
-    // Company name and job title MUST remain EXACTLY as provided - never modify these
-    // More aggressive injection: inject into ALL bullets until all keywords are covered
+    // ███ IMMUTABLE FIELDS - NEVER MODIFY ███
+    // - Company name: EXACTLY as provided in profile
+    // - Job title: EXACTLY as provided in profile  
+    // - Dates: EXACTLY as provided in profile
+    // Only bullet points (achievements/responsibilities) can be tailored with keywords
     const modifiedRoles = parsed.rawRoles.map((role, roleIdx) => {
       stats.rolesProcessed++;
       // Track preserved fields - these should NEVER be modified by the tailoring engine
-      stats.preservedCompanies.push(role.company);  // FIXED: Exact company name from profile
-      stats.preservedTitles.push(role.title);  // FIXED: Exact job title from profile
+      // Company and title are LOCKED - they come from user's profile and must remain unchanged
+      stats.preservedCompanies.push(role.company);  // IMMUTABLE: Exact company name from profile
+      stats.preservedTitles.push(role.title);       // IMMUTABLE: Exact job title from profile
 
       // Role weight: more recent roles get more keywords
       const roleWeight = Math.max(1, 5 - roleIdx); // 5, 4, 3, 2, 1 for first 5 roles
