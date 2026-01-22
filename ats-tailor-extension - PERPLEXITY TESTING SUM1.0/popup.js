@@ -57,6 +57,45 @@ const SUPPORTED_HOSTS = [
 const MAX_JD_LENGTH = 10000; // Limit JD to 10k chars for faster processing
 const CACHE_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
 
+// ███ WORK EXPERIENCE IMMUTABILITY VALIDATOR ███
+// Validates that AI-generated CV data preserves original company names, job titles, and dates
+// These fields should NEVER be modified during tailoring - only bullet points can change
+function validateWorkExperienceImmutability(originalExperience, tailoredExperience) {
+  if (!Array.isArray(originalExperience) || !Array.isArray(tailoredExperience)) {
+    return tailoredExperience || [];
+  }
+  
+  const validated = tailoredExperience.map((tailoredExp, idx) => {
+    const originalExp = originalExperience[idx];
+    if (!originalExp) return tailoredExp;
+    
+    // Extract original immutable values with fallbacks for different field naming conventions
+    const origCompany = originalExp.company || originalExp.companyName || '';
+    const origTitle = originalExp.title || originalExp.jobTitle || originalExp.position || '';
+    const origDates = originalExp.dates || `${originalExp.startDate || ''} – ${originalExp.endDate || 'Present'}`.trim();
+    const origStartDate = originalExp.startDate || '';
+    const origEndDate = originalExp.endDate || '';
+    
+    // Return validated object with original immutable fields + tailored bullets
+    return {
+      ...tailoredExp,
+      company: origCompany,      // ← IMMUTABLE
+      companyName: origCompany,  // ← IMMUTABLE (alias)
+      title: origTitle,          // ← IMMUTABLE
+      jobTitle: origTitle,       // ← IMMUTABLE (alias)
+      position: origTitle,       // ← IMMUTABLE (alias)
+      dates: origDates,          // ← IMMUTABLE
+      startDate: origStartDate,  // ← IMMUTABLE
+      endDate: origEndDate,      // ← IMMUTABLE
+      // Bullets/achievements CAN be tailored
+      bullets: tailoredExp.bullets || tailoredExp.description || originalExp.bullets || [],
+      description: tailoredExp.description || tailoredExp.bullets || originalExp.description || [],
+    };
+  });
+  
+  return validated;
+}
+
 class ATSTailor {
   constructor() {
     this.session = null;
@@ -2816,6 +2855,55 @@ class ATSTailor {
 
       const result = await response.json();
       if (result.error) throw new Error(result.error);
+
+      // ███ CRITICAL: VALIDATE & FIX WORK EXPERIENCE IMMUTABILITY ███
+      // AI may have changed job titles/company names - force them back to profile values
+      const originalExperience = Array.isArray(p.professional_experience) ? p.professional_experience : [];
+      
+      if ((result.resumeStructured || result.structuredCv) && originalExperience.length > 0) {
+        const structuredCv = result.resumeStructured || result.structuredCv;
+        
+        if (Array.isArray(structuredCv.experience)) {
+          console.log('[ATS Tailor] ███ Validating work experience immutability ███');
+          
+          structuredCv.experience = structuredCv.experience.map((aiExp, idx) => {
+            const originalExp = originalExperience[idx];
+            if (!originalExp) return aiExp;
+            
+            // Log any detected changes for debugging
+            const aiCompany = aiExp.company || '';
+            const aiTitle = aiExp.title || '';
+            const origCompany = originalExp.company || originalExp.companyName || '';
+            const origTitle = originalExp.title || originalExp.jobTitle || originalExp.position || '';
+            
+            if (aiCompany !== origCompany || aiTitle !== origTitle) {
+              console.warn(`[ATS Tailor] ⚠️ AI modified immutable fields for role ${idx + 1}:`,
+                `Company: "${origCompany}" → "${aiCompany}"`,
+                `Title: "${origTitle}" → "${aiTitle}"`,
+                '→ Forcing back to original values'
+              );
+            }
+            
+            // FORCE original values - never trust AI for these fields
+            return {
+              ...aiExp,
+              company: origCompany,  // ← LOCKED FROM ORIGINAL PROFILE
+              title: origTitle,      // ← LOCKED FROM ORIGINAL PROFILE
+              dates: originalExp.dates || `${originalExp.startDate || ''} – ${originalExp.endDate || 'Present'}`.trim(),  // ← LOCKED
+              startDate: originalExp.startDate,  // ← LOCKED
+              endDate: originalExp.endDate,      // ← LOCKED
+              // bullets/description CAN be tailored by AI
+              bullets: aiExp.bullets || aiExp.description || originalExp.bullets || originalExp.description || [],
+            };
+          });
+          
+          console.log('[ATS Tailor] ✓ Work experience immutability validated');
+        }
+        
+        // Update result with validated structuredCv
+        result.resumeStructured = structuredCv;
+        result.structuredCv = structuredCv;
+      }
 
       // PART 1A: Store structuredCv from tailoring for PDF generation (no re-parsing)
       if (result.resumeStructured || result.structuredCv) {

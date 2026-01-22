@@ -449,13 +449,12 @@
           company = this.stripDatesFromField(company);
           title = this.stripDatesFromField(title);
           
-          // CRITICAL: Detect if company/title are swapped
-          // If "company" looks like a job title and "title" looks like a company, swap them
-          if (isJobTitle(company) && (isCompanyName(title) || !isJobTitle(title))) {
-            const temp = company;
-            company = title;
-            title = temp;
-          }
+          // ███ REMOVED AUTO-SWAP LOGIC ███
+          // Previously: if company looked like job title and vice versa, we swapped them
+          // This caused issues where correct data was being incorrectly swapped
+          // Now: Trust the profile data completely - company/title fields are IMMUTABLE
+          // The edge function + popup.js validation ensures these fields are correct
+          // If there's a genuine data issue, it should be fixed in the user's profile
           
           // Normalise dates to prevent duplication
           const normalisedDates = dates ? String(dates)
