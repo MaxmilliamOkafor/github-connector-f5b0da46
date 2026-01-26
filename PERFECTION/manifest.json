@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ATS PERFECTION v3.0 - Ultimate CV Tailor",
-  "version": "3.0.0",
-  "description": "PERFECTION v3.0: Ultimate ATS extension with auto-trigger, enterprise PDF engine, smart CV parser, cover letter generator, location extraction, immutable field protection, and 100% keyword match.",
+  "name": "PERFECTION - ATS Optimizer v3.5",
+  "version": "3.5.0",
+  "description": "PERFECTION v3.5: Ultimate ATS optimizer with ALWAYS-ON auto-trigger, persistent banners, 45-60s fast pipeline, reattach functionality, professional PDF engine, and 100% keyword match.",
   "permissions": [
     "storage",
     "activeTab",
